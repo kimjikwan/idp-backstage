@@ -1,28 +1,41 @@
 apiVersion: scaffolder.backstage.io/v1beta3
-# https://backstage.io/docs/features/software-catalog/descriptor-format#kind-template
 kind: Template
 metadata:
-  name: example-nodejs-template
-  title: Example Node.js Template
-  description: An example template for the scaffolder that creates a simple Node.js service
+  name: basic-backend-service
+  title: Basic Backend Service
+  description: Creates a basic backend service with a simple API endpoint.
+  tags:
+    - recommended
+    - java
+    - backend
 spec:
-  owner: user:guest
+  owner: team-a
   type: service
-
-  # These parameters are used to generate the input form in the frontend, and are
-  # used to gather input data for the execution of the template.
   parameters:
-    - title: Fill in some steps
+    - title: Provide some simple information
       required:
-        - name
+        - component_id
+        - description
+        - owner
       properties:
-        name:
-          title: Name
+        component_id:
+          title: Component ID
           type: string
-          description: Unique name of the component
+          description: Unique ID of the component
           ui:autofocus: true
           ui:options:
             rows: 5
+        description:
+          title: Description
+          type: string
+          description: Description of the component
+        owner:
+          title: Owner
+          type: string
+          description: Owner of the component
+          ui:field: OwnerPicker
+          ui:options:
+            allowedKinds: [Group, User]
     - title: Choose a location
       required:
         - repoUrl
@@ -34,55 +47,34 @@ spec:
           ui:options:
             allowedHosts:
               - github.com
-
-  # These steps are executed in the scaffolder backend, using data that we gathered
-  # via the parameters above.
   steps:
-    # Each step executes an action, in this case one templates files into the working directory.
     - id: fetch-base
       name: Fetch Base
       action: fetch:template
       input:
-        url: ./content
+        url: ./content # 템플릿 내용이 있는 디렉토리
         values:
-          name: ${{ parameters.name }}
-
-    # This step publishes the contents of the working directory to GitHub.
-    # If you or your organization prefer another default branch name over 'main'
-    # you can change that here.
+          component_id: ${{ parameters.component_id }}
+          description: ${{ parameters.description }}
+          owner: ${{ parameters.owner }}
     - id: publish
       name: Publish
       action: publish:github
       input:
-        description: This is ${{ parameters.name }}
+        allowedHosts: ['github.com']
         repoUrl: ${{ parameters.repoUrl }}
-        defaultBranch: 'main'
-
-    # The final step is to register our new component in the catalog.
+        defaultBranch: main
+        token: ${{ secrets.GITHUB_TOKEN }}
     - id: register
       name: Register
       action: catalog:register
       input:
-        repoContentsUrl: ${{ steps['publish'].output.repoContentsUrl }}
+        repoContentsUrl: ${{ steps.publish.output.repoContentsUrl }}
         catalogInfoPath: '/catalog-info.yaml'
-
-    # Let's notify the user that the template has completed using the Notification action
-    - id: notify
-      name: Notify
-      action: notification:send
-      input:
-        recipients: entity
-        entityRefs:
-          - user:default/guest
-        title: 'Template executed'
-        info: 'Your template has been executed'
-        severity: 'normal'
-
-  # Outputs are displayed to the user after a successful execution of the template.
   output:
     links:
       - title: Repository
-        url: ${{ steps['publish'].output.remoteUrl }}
+        url: ${{ steps.publish.output.remoteUrl }}
       - title: Open in catalog
         icon: catalog
-        entityRef: ${{ steps['register'].output.entityRef }}
+        entityRef: ${{ steps.register.output.entityRef }}

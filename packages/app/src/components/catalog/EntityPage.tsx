@@ -50,6 +50,18 @@ import {
   RELATION_PROVIDES_API,
 } from '@backstage/catalog-model';
 
+
+import {
+  isGithubActionsAvailable,
+  EntityGithubActionsContent,
+} from '@backstage/plugin-github-actions';
+import {
+  isArgocdAvailable,
+  EntityArgoCDHistoryCard,
+  EntityArgoCDOverviewCard,
+  EntityArgoCDContent
+} from '@roadiehq/backstage-plugin-argo-cd';
+
 import { TechDocsAddons } from '@backstage/plugin-techdocs-react';
 import { ReportIssue } from '@backstage/plugin-techdocs-module-addons-contrib';
 
@@ -66,29 +78,47 @@ const techdocsContent = (
   </EntityTechdocsContent>
 );
 
-const cicdContent = (
-  // This is an example of how you can implement your company's logic in entity page.
-  // You can for example enforce that all components of type 'service' should use GitHubActions
+const githubActionsContent = (
   <EntitySwitch>
-    {/*
-      Here you can add support for different CI/CD services, for example
-      using @backstage-community/plugin-github-actions as follows:
-      <EntitySwitch.Case if={isGithubActionsAvailable}>
-        <EntityGithubActionsContent />
-      </EntitySwitch.Case>
-     */}
+    <EntitySwitch.Case if={isGithubActionsAvailable}>
+      <EntityGithubActionsContent />
+    </EntitySwitch.Case>
     <EntitySwitch.Case>
       <EmptyState
-        title="No CI/CD available for this entity"
+        title="GitHub Actions not available"
         missing="info"
-        description="You need to add an annotation to your component if you want to enable CI/CD for it. You can read more about annotations in Backstage by clicking the button below."
+        description="This component does not have GitHub Actions configured. Add the github.com/project-slug annotation to enable GitHub Actions integration."
         action={
           <Button
             variant="contained"
             color="primary"
             href="https://backstage.io/docs/features/software-catalog/well-known-annotations"
           >
-            Read more
+            Read more about annotations
+          </Button>
+        }
+      />
+    </EntitySwitch.Case>
+  </EntitySwitch>
+);
+
+const argocdContent = (
+  <EntitySwitch>
+    <EntitySwitch.Case if={isArgocdAvailable}>
+      <EntityArgoCDHistoryCard />
+    </EntitySwitch.Case>
+    <EntitySwitch.Case>
+      <EmptyState
+        title="ArgoCD not available"
+        missing="info"
+        description="This component does not have ArgoCD configured. Add the argocd/app-name annotation to enable ArgoCD integration."
+        action={
+          <Button
+            variant="contained"
+            color="primary"
+            href="https://backstage.io/docs/integrations/argocd/"
+          >
+            Read more about ArgoCD integration
           </Button>
         }
       />
@@ -127,17 +157,31 @@ const entityWarningContent = (
 const overviewContent = (
   <Grid container spacing={3} alignItems="stretch">
     {entityWarningContent}
-    <Grid item md={6}>
+
+    {/* 첫 번째 줄: 기본 정보 카드들 */}
+    <Grid item xs={12} md={4}>
       <EntityAboutCard variant="gridItem" />
     </Grid>
-    <Grid item md={6} xs={12}>
+
+    {/* ArgoCD Overview */}
+    <EntitySwitch>
+      <EntitySwitch.Case if={isArgocdAvailable}>
+        <Grid item xs={12} md={4}>
+          <EntityArgoCDOverviewCard />
+        </Grid>
+      </EntitySwitch.Case>
+    </EntitySwitch>
+
+    <Grid item xs={12} md={4}>
+      <EntityLinksCard />
+    </Grid>
+
+    {/* 두 번째 줄: 컴포넌트 그래프 */}
+    <Grid item xs={12} md={6}>
       <EntityCatalogGraphCard variant="gridItem" height={400} />
     </Grid>
 
-    <Grid item md={4} xs={12}>
-      <EntityLinksCard />
-    </Grid>
-    <Grid item md={8} xs={12}>
+    <Grid item xs={12} md={6}>
       <EntityHasSubcomponentsCard variant="gridItem" />
     </Grid>
   </Grid>
@@ -149,8 +193,12 @@ const serviceEntityPage = (
       {overviewContent}
     </EntityLayout.Route>
 
-    <EntityLayout.Route path="/ci-cd" title="CI/CD">
-      {cicdContent}
+    <EntityLayout.Route path="/github-actions" title="GitHub Actions" if={isGithubActionsAvailable}>
+      {githubActionsContent}
+    </EntityLayout.Route>
+
+    <EntityLayout.Route path="/argocd" title="ArgoCD" if={isArgocdAvailable}>
+      {argocdContent}
     </EntityLayout.Route>
 
     <EntityLayout.Route
@@ -195,8 +243,12 @@ const websiteEntityPage = (
       {overviewContent}
     </EntityLayout.Route>
 
-    <EntityLayout.Route path="/ci-cd" title="CI/CD">
-      {cicdContent}
+    <EntityLayout.Route path="/github-actions" title="GitHub Actions" if={isGithubActionsAvailable}>
+      {githubActionsContent}
+    </EntityLayout.Route>
+
+    <EntityLayout.Route path="/argocd" title="ArgoCD" if={isArgocdAvailable}>
+      {argocdContent}
     </EntityLayout.Route>
 
     <EntityLayout.Route
